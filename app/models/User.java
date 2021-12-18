@@ -2,6 +2,7 @@ package models;
 
 
 import com.google.gson.JsonObject;
+import controllers.Secure;
 import helpers.FileUtils;
 import play.Logger;
 
@@ -9,26 +10,31 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 public class User {
 
     private String username;
     private String password;
+	private String salt;					
     private String type;
     private int mark;
 
     public User(JsonObject json) {
         this.username = json.has(Constants.User.FIELD_USERNAME) ? json.get(Constants.User.FIELD_USERNAME).getAsString() : "";
         this.password = json.has(Constants.User.FIELD_PASSWORD) ? json.get(Constants.User.FIELD_PASSWORD).getAsString() : "";
-        this.mark = json.has(Constants.User.FIELD_MARK) ? json.get(Constants.User.FIELD_MARK).getAsInt() : 0;
+        this.salt = json.has(Constants.User.FIELD_SALT) ? json.get(Constants.User.FIELD_SALT).getAsString() : "";
+       this.mark = json.has(Constants.User.FIELD_MARK) ? json.get(Constants.User.FIELD_MARK).getAsInt() : 0;
         this.type = json.has(Constants.User.FIELD_TYPE) ? json.get(Constants.User.FIELD_TYPE).getAsString() : "teacher";
     }
 
     public User(String username, String password, String type, Integer mark) {
         this.username = username;
-        this.password = password;
-        this.mark = mark;
+        this.salt = Base64.getEncoder().encodeToString(Secure.getSalt());
+        String newpass = Secure.securizarPassword(password, salt);
+        this.password = newpass;
+		this.mark = mark;
         this.type = type;
     }
 
@@ -48,6 +54,13 @@ public class User {
         this.password = password;
     }
 
+    public String getSalt() {
+        return salt;
+    }
+
+    public void setSalt(String salt) {
+        this.salt = salt;
+    }
     public String getType() {
         return type;
     }
@@ -72,6 +85,7 @@ public class User {
         JsonObject json = new JsonObject();
         json.addProperty(Constants.User.FIELD_USERNAME, username);
         json.addProperty(Constants.User.FIELD_PASSWORD, password);
+		json.addProperty(Constants.User.FIELD_SALT, salt);												  
         json.addProperty(Constants.User.FIELD_TYPE, type);
         json.addProperty(Constants.User.FIELD_MARK, mark);
 
